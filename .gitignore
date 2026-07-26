@@ -1,0 +1,18 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project specific
+tmp/
+data/
+results/
+figures/
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
