@@ -12,19 +12,8 @@ BUILD_ENV_DIR="$PROJECT_DIR/hpc/buildenv_viennarna"
 MODULE_STDENV="StdEnv/2023"
 MODULE_PYTHON="python/3.12.4"
 
-# ViennaRNA 2.7.2 Source
-VIENNARNA_URL="https://www.tbi.univie.ac.at/RNA/download/sourcecode/2_7_x/ViennaRNA-2.7.2.tar.gz"
-TARBALL_PATH="$PROJECT_DIR/hpc/ViennaRNA-2.7.2.tar.gz"
-
 echo "Loading modules..."
 module load "$MODULE_STDENV" "$MODULE_PYTHON"
-
-echo "Downloading ViennaRNA source..."
-if [[ ! -f "$TARBALL_PATH" ]]; then
-    curl -o "$TARBALL_PATH" "$VIENNARNA_URL"
-else
-    echo "Source tarball already exists at $TARBALL_PATH"
-fi
 
 echo "Creating temporary build environment..."
 if [[ -d "$BUILD_ENV_DIR" ]]; then
@@ -37,9 +26,12 @@ source "$BUILD_ENV_DIR/bin/activate"
 echo "Upgrading build tools..."
 pip install -U pip setuptools wheel build
 
-echo "Building ViennaRNA wheel..."
+echo "Building ViennaRNA wheel from PyPI..."
 mkdir -p "$WHEELHOUSE_DIR"
-pip wheel --no-build-isolation -w "$WHEELHOUSE_DIR" "$TARBALL_PATH"
+# The PyPI version of ViennaRNA contains the proper setup.py wrapper for compilation.
+pip wheel --no-build-isolation -w "$WHEELHOUSE_DIR" ViennaRNA==2.7.2
+# The PyPI version of ViennaRNA contains the proper setup.py wrapper for compilation.
+pip wheel --no-build-isolation -w "$WHEELHOUSE_DIR" ViennaRNA==2.7.2
 
 deactivate
 rm -rf "$BUILD_ENV_DIR"
