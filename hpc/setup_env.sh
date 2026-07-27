@@ -17,7 +17,7 @@ module load "$MODULE_STDENV" "$MODULE_PYTHON"
 module load scipy-stack || echo "scipy-stack module not available, continuing..."
 
 echo "Checking for required wheels..."
-if ! ls "$WHEELHOUSE_DIR"/ViennaRNA-*.whl 1> /dev/null 2>&1; then
+if ! ls "$WHEELHOUSE_DIR"/[Vv]ienna[Rr][Nn][Aa]-*.whl 1> /dev/null 2>&1; then
     echo "ERROR: ViennaRNA wheel not found in $WHEELHOUSE_DIR."
     echo "DRAC compute nodes do not have internet access to download source packages."
     echo "Please run 'bash hpc/build_viennarna_wheel.sh' on a login node first."
