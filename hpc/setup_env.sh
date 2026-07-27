@@ -29,14 +29,18 @@ echo "Creating virtual environment at $VENV_DIR..."
 virtualenv --no-download "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 
-# Update core packaging tools offline
-pip install --no-index -U pip setuptools wheel build
+# Update core packaging tools offline (adding pip-tools)
+pip install --no-index -U pip setuptools wheel build pip-tools
+
+echo "Compiling requirements offline..."
+# Compile requirements-drac.txt strictly against DRAC's CVMFS wheelhouse
+pip-compile --no-index --find-links="$WHEELHOUSE_DIR" "$PROJECT_DIR/requirements.in" -o "$PROJECT_DIR/requirements-drac.txt"
 
 echo "Installing project dependencies..."
 # On DRAC compute nodes, use --no-index and provide wheels in a wheelhouse.
 # If a package like ViennaRNA needs to be built, it should be built on a login node
 # and placed in $WHEELHOUSE_DIR beforehand.
-pip install --no-index --find-links="$WHEELHOUSE_DIR" -r "$PROJECT_DIR/requirements.txt"
+pip install --no-index --find-links="$WHEELHOUSE_DIR" -r "$PROJECT_DIR/requirements-drac.txt"
 
 echo "Installing local package in editable mode..."
 # Allows scripts to import `augmenter` directly without modifying PYTHONPATH
