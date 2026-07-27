@@ -7,10 +7,12 @@
 export PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Standard DRAC Python Module
+export MODULE_STDENV="StdEnv/2023"
 export MODULE_PYTHON="python/3.12.4"
 
 # Load modules
-module load "$MODULE_PYTHON"
+module load "$MODULE_STDENV" "$MODULE_PYTHON"
+module load scipy-stack || echo "scipy-stack module not available, continuing..."
 
 # Activate the virtual environment
 if [ -f "$PROJECT_DIR/.venv/bin/activate" ]; then
