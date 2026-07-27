@@ -19,6 +19,15 @@ Once the wheel is ready, the `setup_env.sh` script automates loading the require
 bash hpc/setup_env.sh
 ```
 
+**Step 3: Interactive Usage (Login Nodes)**
+
+If you are running scripts interactively on a login node (instead of submitting a SLURM job), you must manually load the same modules and activate the virtual environment so that dependencies like Pandas are correctly resolved from `scipy-stack`:
+
+```bash
+module load StdEnv/2023 python/3.12 scipy-stack
+source .venv/bin/activate
+```
+
 ## 2. Running Jobs
 
 Instead of managing a separate `.sbatch` script for every experiment, we use generic wrapper scripts (`submit_gpu.sbatch` and `submit_cpu.sbatch`). These wrappers load the virtual environment and seamlessly pass all command line arguments to Python. 

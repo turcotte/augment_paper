@@ -15,7 +15,10 @@ if [ "$#" -eq 0 ]; then
     exit 1
 fi
 
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+# SLURM copies the script to a temporary spool directory during execution.
+# Therefore, BASH_SOURCE[0] is unreliable. We must use SLURM_SUBMIT_DIR,
+# which points to the directory where the user ran the sbatch command (project root).
+source "${SLURM_SUBMIT_DIR}/hpc/common.sh"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Starting CPU job..."
 srun python "$@"
