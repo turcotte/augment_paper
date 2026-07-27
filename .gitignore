@@ -12,6 +12,9 @@ tmp/
 data/
 results/
 figures/
+hpc/wheelhouse/
+hpc/buildenv_viennarna/
+requirements-drac.txt
 __pycache__/
 *.pyc
 .DS_Store
