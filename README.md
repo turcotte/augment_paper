@@ -35,7 +35,7 @@ results/
         │   └── no_struct_seed42/
         ├── autoencoder/
         │   └── default_seed42/
-        └── ga/                      # <- GA baseline fits right in!
+        └── ga/                      # <- GA baseline
             └── default_seed42/
 ```
 

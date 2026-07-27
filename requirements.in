@@ -5,6 +5,6 @@ seaborn
 scikit-learn
 torch
 torch-geometric
-tqdm
+
 scipy
 viennarna

@@ -9,12 +9,11 @@ import pandas as pd
 import numpy as np
 from torch_geometric.data import Batch
 from torch.utils.data import DataLoader, TensorDataset
-from tqdm import tqdm
 
 from src.models.gat import GATRegression
 from src.models.autoencoder import ARLSTMDecoder, GATAutoEncoder
 from src.models.cnn import TangCNNRegressor
-from src.data.transforms import sequence_to_graph
+from src.utils.finetune import TestDataset, load_agent_and_prior, get_latents_mrls, evaluate_cnn_oracle
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DAP Fine-tuning of Autoencoder")
@@ -34,58 +33,7 @@ def parse_args():
     parser.add_argument("--device", type=str, default="auto", help="Device (cuda, mps, cpu, auto)")
     return parser.parse_args()
 
-def evaluate_cnn_mrl(model, cnn_model, dataloader, device):
-    """Evaluate MRL shift and Hamming distance using CNN Oracle on the test set."""
-    model.eval()
-    cnn_model.eval()
-    
-    orig_mrls = []
-    gen_mrls = []
-    hamming_dists = []
-    all_orig_seqs = []
-    all_gen_seqs = []
-    
-    with torch.no_grad():
-        for latents, mrls, orig_seqs in tqdm(dataloader, desc="Evaluating with CNN Oracle"):
-            latents = latents.to(device)
-            mrls = mrls.to(device)
-            
-            logits = model.decoder(latents, mrls)
-            tokens = logits.argmax(dim=-1)
-            gen_seqs = [''.join(['ACGT'[idx.item()] for idx in row]) for row in tokens]
-            
-            arr = np.zeros((len(gen_seqs), 50, 4), dtype=np.float32)
-            vocab = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
-            for i, s in enumerate(gen_seqs):
-                for j, nt in enumerate(s[:50]):
-                    if nt in vocab:
-                        arr[i, j, vocab[nt]] = 1.0
-            
-            _, out_mrl = cnn_model(torch.tensor(arr).to(device))
-            gen_mrls.extend(out_mrl.cpu().numpy().flatten())
-            
-            arr_orig = np.zeros((len(orig_seqs), 50, 4), dtype=np.float32)
-            for i, s in enumerate(orig_seqs):
-                for j, nt in enumerate(s[:50]):
-                    if nt in vocab:
-                        arr_orig[i, j, vocab[nt]] = 1.0
-            _, out_orig_mrl = cnn_model(torch.tensor(arr_orig).to(device))
-            orig_mrls.extend(out_orig_mrl.cpu().numpy().flatten())
-            
-            # Calculate Hamming and track sequences
-            for o, g in zip(orig_seqs, gen_seqs):
-                hamming_dists.append(sum(c1 != c2 for c1, c2 in zip(o, g)))
-                all_orig_seqs.append(o)
-                all_gen_seqs.append(g)
-                
-    df_results = pd.DataFrame({
-        "orig_seq": all_orig_seqs,
-        "gen_seq": all_gen_seqs,
-        "orig_cnn_mrl": orig_mrls,
-        "gen_cnn_mrl": gen_mrls,
-        "hamming_dist": hamming_dists
-    })
-    return np.mean(orig_mrls), np.mean(gen_mrls), np.mean(hamming_dists), df_results
+
 
 def main():
     args = parse_args()
@@ -120,62 +68,14 @@ def main():
     )
     
     print("Loading pre-trained Autoencoder (Agent and Prior)...")
-    encoder = GATRegression(in_channels=10, edge_dim=2, hidden_channels=128)
-    decoder = ARLSTMDecoder(latent_dim=128*2, hidden_dim=256, seq_len=args.seq_len)
-    model = GATAutoEncoder(encoder, decoder).to(device)
-    
-    prior_decoder = ARLSTMDecoder(latent_dim=128*2, hidden_dim=256, seq_len=args.seq_len).to(device)
-    
-    model_path = os.path.join(args.autoencoder_dir, "autoencoder_model.pth")
-    state_dict = torch.load(model_path, map_location=device)
-    model.load_state_dict(state_dict)
-    
-    # Load prior decoder exactly like the agent initially
-    decoder_state_dict = {k.replace("decoder.", ""): v for k, v in state_dict.items() if k.startswith("decoder.")}
-    prior_decoder.load_state_dict(decoder_state_dict)
-    
-    for param in model.encoder.parameters():
-        param.requires_grad = False
-    model.encoder.eval()
-    
-    for param in prior_decoder.parameters():
-        param.requires_grad = False
-    prior_decoder.eval()
-    
-    def get_latents_mrls(df_split, desc):
-        latents = []
-        mrls = []
-        seqs = []
-        
-        for i in tqdm(range(0, len(df_split), args.batch_size), desc=desc):
-            batch_seqs = df_split["utr"].iloc[i:i+args.batch_size].values
-            graphs = Batch.from_data_list(
-                [sequence_to_graph(s) for s in batch_seqs]
-            ).to(device)
-            
-            with torch.no_grad():
-                z, m = model.encoder(graphs)
-            
-            latents.append(z.cpu())
-            mrls.append(m.cpu())
-            seqs.extend(batch_seqs)
-            
-        return torch.cat(latents), torch.cat(mrls), seqs
+    model, prior_decoder = load_agent_and_prior(args.autoencoder_dir, args.seq_len, device)
 
-    l_train, m_train, _ = get_latents_mrls(train_subset_df, "Precomputing Train Subset Latents")
+    l_train, m_train, _ = get_latents_mrls(model, train_subset_df, args.batch_size, device, "Precomputing Train Subset Latents")
     train_loader = DataLoader(TensorDataset(l_train, m_train), batch_size=args.batch_size, shuffle=True)
     
-    l_test, m_test, s_test = get_latents_mrls(test_df, "Precomputing Test Set Latents")
+    l_test, m_test, s_test = get_latents_mrls(model, test_df, args.batch_size, device, "Precomputing Test Set Latents")
     
-    class TestDataset(torch.utils.data.Dataset):
-        def __init__(self, latents, mrls, seqs):
-            self.latents = latents
-            self.mrls = mrls
-            self.seqs = seqs
-        def __len__(self):
-            return len(self.latents)
-        def __getitem__(self, idx):
-            return self.latents[idx], self.mrls[idx], self.seqs[idx]
+
             
     test_loader = DataLoader(TestDataset(l_test, m_test, s_test), batch_size=args.batch_size, shuffle=False)
     
@@ -183,7 +83,7 @@ def main():
     cnn_model.load_state_dict(torch.load(os.path.join(args.cnn_dir, "cnn_model.pth"), map_location=device))
     # Evaluate Baseline Before Fine-tuning
     print("\nEvaluating Zero-Shot Autoencoder (Before DAP)...")
-    orig_mrl, gen_mrl, avg_edits, _ = evaluate_cnn_mrl(model, cnn_model, test_loader, device)
+    orig_mrl, gen_mrl, avg_edits, _ = evaluate_cnn_oracle(model, cnn_model, test_loader, device, args.seq_len)
     print(f"Before - Orig MRL: {orig_mrl:.4f}, Gen MRL: {gen_mrl:.4f}, Avg Edits: {avg_edits:.2f}")
 
     print("\nStarting DAP Fine-tuning...")
@@ -196,7 +96,8 @@ def main():
         epoch_rewards = []
         epoch_loss = []
         
-        for latents, mrls in tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.epochs}"):
+        print(f"Epoch {epoch+1}/{args.epochs}...")
+        for latents, mrls in train_loader:
             latents = latents.to(device)
             mrls = mrls.to(device)
             
@@ -239,7 +140,7 @@ def main():
     training_time = time.time() - start_time
     # 6. Final Evaluation
     print("\nEvaluating Fine-tuned Autoencoder (After DAP)...")
-    orig_mrl, post_gen_mrl, post_avg_edits, df_results = evaluate_cnn_mrl(model, cnn_model, test_loader, device)
+    orig_mrl, post_gen_mrl, post_avg_edits, df_results = evaluate_cnn_oracle(model, cnn_model, test_loader, device, args.seq_len)
     print(f"After - Orig MRL: {orig_mrl:.4f}, Gen MRL: {post_gen_mrl:.4f}, Avg Edits: {post_avg_edits:.2f}")
     
     # 7. Serialization
