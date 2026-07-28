@@ -24,7 +24,10 @@ fi
 # Switch to project directory so relative paths (data/, results/) work correctly
 cd "$PROJECT_DIR"
 
-# (PYTHONPATH is not needed because we use pip install -e .)
+# Explicitly set PYTHONPATH to project root to guarantee module resolution.
+# This prevents ModuleNotFound errors if pip's editable install used absolute
+# paths that differ between login node and compute node mounts.
+export PYTHONPATH="$PROJECT_DIR"
 export PYTHONUNBUFFERED=1
 
 echo "================================================================================"
