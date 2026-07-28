@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# Resolving //home/marcelt/project to /project/6006499 right away
+
+set -o physical
+
 # This script sets up the AUGMENT environment on DRAC.
 # It strictly follows DRAC guidelines for offline installation using --no-index.
 
@@ -45,7 +49,7 @@ pip install --no-index --find-links="$WHEELHOUSE_DIR" -r "$PROJECT_DIR/requireme
 echo "Installing local package in editable mode..."
 # Allows scripts to import `augmenter` directly without modifying PYTHONPATH
 cd "$PROJECT_DIR"
-pip install --no-index -e .
+pip install --no-index -e . --no-deps
 
 echo "Sanity checking installation..."
 python -c "import src, src.models; print('Package path:', src.__file__)"

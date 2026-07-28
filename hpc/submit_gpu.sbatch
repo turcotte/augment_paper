@@ -22,5 +22,7 @@ fi
 source "${SLURM_SUBMIT_DIR}/hpc/common.sh"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') Starting GPU job..."
-srun python "$@"
+# We use 'env' to force PYTHONPATH explicitly on the compute node. 
+# This prevents srun from stripping environment variables, which is common on HPC clusters.
+srun env PYTHONPATH="$PROJECT_DIR${PYTHONPATH:+:$PYTHONPATH}" python "$@"
 echo "$(date '+%Y-%m-%d %H:%M:%S') Job complete."
