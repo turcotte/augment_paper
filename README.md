@@ -27,8 +27,8 @@ results/
         ├── test.csv.gz
         ├── cnn/                     # 3. Algorithm class
         │   └── default_seed42/      # 4. Variant + Replicate
-        │       ├── model.pth
-        │       └── scaler.json      # <- Scalers live next to the model
+        │       ├── cnn_model.pth
+        │       └── cnn_scaler.json      # <- Scalers live next to the model
         ├── gat/
         │   ├── baseline_fold1/
         │   ├── baseline_fold2/
@@ -196,21 +196,42 @@ python scripts/create_ga_subsets.py \
     --seed 42
 ```
 
+## Calibrating the Genetic Algorithm
+
+Before running the batch evaluation, use the calibration script to determine the optimal edit-penalty (`lambda`) by comparing the GA's Pareto front against the fine-tuned RL models:
+
+```bash
+python scripts/calibrate_ga.py \
+    --calibration_set results/GSM3130435_egfp_unmod_1/read_count_standard/calibration-100.csv.gz \
+    --predictor_dir results/GSM3130435_egfp_unmod_1/read_count_standard/gat/default_seed42 \
+    --proxy_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
+    --predictor gat \
+    --proxy_predictor cnn \
+    --rl_csvs \
+        results/GSM3130435_egfp_unmod_1/read_count_standard/reinforce/default_seed42/reinforce_optimized_sequences.csv.gz \
+        results/GSM3130435_egfp_unmod_1/read_count_standard/dap/default_seed42/dap_optimized_sequences.csv.gz \
+        results/GSM3130435_egfp_unmod_1/read_count_standard/curriculum_dap/default_seed42/curriculum_dap_optimized_sequences.csv.gz \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga_calibration
+```
+
+This will generate `pareto_calibration.pdf` and a `calibration_results.json` that identifies the optimal lambda.
+
 ## Running the Genetic Algorithm
 
-To optimize a specific sequence from a dataset, use the genetic algorithm script:
+Once you determine the optimal lambda from the calibration step (e.g., `0.075`), run the batch evaluation across the large test set:
 
 ```bash
 python scripts/run_ga.py \
-    --model_dir results/GSM3130435_egfp_unmod_1/read_count_standard \
+    --input_csv results/GSM3130435_egfp_unmod_1/read_count_standard/test-1000.csv.gz \
+    --predictor_dir results/GSM3130435_egfp_unmod_1/read_count_standard/gat/default_seed42 \
+    --proxy_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
     --predictor gat \
     --proxy_predictor cnn \
-    --data_path data/GSM3130435_egfp_unmod_1.csv.gz \
-    --target_index 0 \
-    --generations 100
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42 \
+    --lambda_val 0.075
 ```
 
-This will automatically generate uniquely evolved sequences in `results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/target_0/`.
+This will automatically generate uniquely evolved sequences and output them to `results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42/ga_results.csv.gz`.
 
 ## Plotting Curves
 
@@ -242,6 +263,31 @@ python scripts/plot_curves.py \
     --xlabel "Generation" \
     --ylabel "Fitness Score"
 ```
+
+## Comparing Biological Metrics
+
+To generate comprehensive biological evaluation plots comparing a fine-tuned RL model (e.g., Curriculum DAP) against the Genetic Algorithm baseline, use the comparison script. This script computes local structural accessibility (MFE), compositional shifts (GC, Entropy), and regulatory disruptions (uAUG, uORFs) without requiring PyTorch or model weights.
+
+```bash
+python scripts/compare_models.py \
+    --rl_csv results/GSM3130435_egfp_unmod_1/read_count_standard/curriculum_dap/default_seed42/curriculum_dap_optimized_sequences.csv.gz \
+    --ga_csv results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42/ga_results.csv.gz \
+    --output_dir figures/comparison_curriculum_dap_vs_ga
+```
+
+## Visualizing Latent Space
+
+To understand how the Autoencoder organizes biological features, you can project the high-dimensional latent space into 2D using t-SNE and UMAP, and color the projections with biological metrics using heat-maps.
+
+```bash
+python scripts/visualize_latent_space.py \
+    --data results/GSM3130435_egfp_unmod_1/read_count_standard/test.csv.gz \
+    --model_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42 \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42/latent_space_plots \
+    --plot_type both
+```
+
+*(Note: We recommend outputting these plots into a `latent_space_plots` subfolder as shown above, since the script will generate ~16 distinct PDF files.)*
 
 ## Compute Canada / DRAC Environment
 
