@@ -70,7 +70,7 @@ uv pip install -r requirements.txt
 uv pip install -e .
 ```
 
-*(Note: installing the project in editable mode `-e .` ensures that the `augmenter` module in `src/` is accessible to all scripts without needing to modify your `PYTHONPATH`.)*
+*(Note: installing the project in editable mode `-e .` ensures that the modules in `src/` are accessible to all scripts without needing to modify your `PYTHONPATH`.)*
 
 ## Downloading Datasets
 
@@ -275,19 +275,24 @@ python scripts/compare_models.py \
     --output_dir figures/comparison_curriculum_dap_vs_ga
 ```
 
-## Visualizing Latent Space
+## Latent Space Visualization
 
-To understand how the Autoencoder organizes biological features, you can project the high-dimensional latent space into 2D using t-SNE and UMAP, and color the projections with biological metrics using heat-maps.
+You can visualize the GNN autoencoder's learned latent space using t-SNE and UMAP, colored by various biological metrics (e.g., GC content, uAUG count, MFE).
 
 ```bash
 python scripts/visualize_latent_space.py \
     --data results/GSM3130435_egfp_unmod_1/read_count_standard/test.csv.gz \
-    --model_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42 \
-    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42/latent_space_plots \
+    --model_dir results/GSM3130435_egfp_unmod_1/autoencoder/default_seed42 \
+    --output_dir results/GSM3130435_egfp_unmod_1/autoencoder/default_seed42/latent_space_plots \
     --plot_type both
 ```
 
-*(Note: We recommend outputting these plots into a `latent_space_plots` subfolder as shown above, since the script will generate ~16 distinct PDF files.)*
+> **Note**: You can set `--output_dir` to be the same as `--model_dir`. The script will output PDF plots (e.g. `tsne_gc_content.pdf`) which will not conflict with your model files. However, creating a dedicated `latent_space_plots` sub-folder keeps your results organized.
+
+The script generates:
+- t-SNE and UMAP projections (if `umap-learn` is installed).
+- Heat-maps for GC Content, Total Entropy, uAUGs, uORFs, ARE Motifs, and regional MFE.
+- Visualizations as either scatter plots (`--plot_type scatter`), hexbin plots (`--plot_type hexbin`), or both.
 
 ## Compute Canada / DRAC Environment
 
