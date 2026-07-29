@@ -6,6 +6,8 @@
 # Resolve project directory dynamically (one level up from this script)
 export PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+echo "PROJECT_DIR: $PROJECT_DIR"
+
 # Standard DRAC Python Module
 export MODULE_STDENV="StdEnv/2023"
 export MODULE_PYTHON="python/3.12.4"
