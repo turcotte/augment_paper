@@ -35,4 +35,5 @@ echo "HOSTNAME: ${HOSTNAME:-unknown}"
 echo "SLURM_JOB_ID: ${SLURM_JOB_ID:-unknown}"
 echo "SLURM_JOB_NAME: ${SLURM_JOB_NAME:-unknown}"
 echo "PROJECT_DIR: ${PROJECT_DIR}"
+echo "PROJECT_DIR: ${PROJECT_DIR}"
 echo

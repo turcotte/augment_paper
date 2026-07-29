@@ -184,6 +184,18 @@ python scripts/finetune_curriculum_dap.py \
 
 *(Variable length inputs are supported via the `--seq_len` argument.)*
 
+## Creating GA Evaluation Subsets
+
+Before evaluating the Genetic Algorithm, you must create disjoint calibration and test subsets from the main test partition:
+
+```bash
+python scripts/create_ga_subsets.py \
+    --input_file results/GSM3130435_egfp_unmod_1/read_count_standard/test.csv.gz \
+    --n_calibration 100 \
+    --n_test 1000 \
+    --seed 42
+```
+
 ## Running the Genetic Algorithm
 
 To optimize a specific sequence from a dataset, use the genetic algorithm script:

@@ -39,6 +39,7 @@ This means you can simply prefix any command from the main `README.md` with `sba
 sbatch hpc/submit_gpu.sbatch scripts/train_cnn.py \
     --raw_data data/GSM3130435_egfp_unmod_1.csv.gz \
     --train_set results/GSM3130435_egfp_unmod_1/read_count_standard/train.csv.gz \
+    --valid_set results/GSM3130435_egfp_unmod_1/read_count_standard/valid.csv.gz \    
     --test_set results/GSM3130435_egfp_unmod_1/read_count_standard/test.csv.gz \
     --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42
 ```
