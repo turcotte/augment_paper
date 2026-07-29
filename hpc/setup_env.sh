@@ -36,7 +36,12 @@ source "$VENV_DIR/bin/activate"
 # Update core packaging tools offline (adding pip-tools)
 pip install --no-index -U pip setuptools wheel build pip-tools
 
-echo "Compiling requirements offline..."
+echo "Setting up Python environment..."
+
+# Ensure the HPC SLURM log directory exists before any jobs are submitted
+mkdir -p results/logs
+
+echo "Generating requirements-drac.txt for cluster compatibility..."
 # Compile requirements-drac.txt strictly against DRAC's CVMFS wheelhouse
 pip-compile --no-index --find-links="$WHEELHOUSE_DIR" "$PROJECT_DIR/requirements.in" -o "$PROJECT_DIR/requirements-drac.txt"
 

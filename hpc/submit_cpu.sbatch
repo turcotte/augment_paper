@@ -4,8 +4,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
-#SBATCH --output=results/%x.%j.out
-#SBATCH --error=results/%x.%j.err
+#SBATCH --output=results/logs/%x.%j.out
+#SBATCH --error=results/logs/%x.%j.err
 
 set -euo pipefail
 
@@ -23,5 +23,6 @@ source "${SLURM_SUBMIT_DIR}/hpc/common.sh"
 echo "$(date '+%Y-%m-%d %H:%M:%S') Starting CPU job..."
 # We use 'env' to force PYTHONPATH explicitly on the compute node. 
 # This prevents srun from stripping environment variables, which is common on HPC clusters.
-srun env PYTHONPATH="$PROJECT_DIR${PYTHONPATH:+:$PYTHONPATH}" python "$@"
+# srun env PYTHONPATH="$PROJECT_DIR${PYTHONPATH:+:$PYTHONPATH}" python "$@"
+srun python "$@"
 echo "$(date '+%Y-%m-%d %H:%M:%S') Job complete."

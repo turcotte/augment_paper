@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --gpus-per-node=nvidia_h100_80gb_hbm3_1g.10gb:1
-#SBATCH --output=results/%x.%j.out
-#SBATCH --error=results/%x.%j.err
+#SBATCH --output=results/logs/%x.%j.out
+#SBATCH --error=results/logs/%x.%j.err
 
 set -euo pipefail
 
