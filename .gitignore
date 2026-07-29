@@ -9,8 +9,8 @@ venv.bak/
 
 # Project specific
 tmp/
-data/
-results/
+/data/
+/results/
 figures/
 hpc/wheelhouse/
 hpc/buildenv_viennarna/
