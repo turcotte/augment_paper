@@ -17,8 +17,10 @@ WHEELHOUSE_DIR="$PROJECT_DIR/hpc/wheelhouse"
 echo "Loading modules..."
 module load "$MODULE_STDENV" "$MODULE_PYTHON"
 
-# DRAC strongly recommends scipy-stack for optimized numpy/scipy
-module load scipy-stack || echo "scipy-stack module not available, continuing..."
+# DRAC strongly recommends scipy-stack for optimized numpy/scipy, 
+# but we DO NOT load it because its custom compiled binaries cause numerical
+# instabilities during autoregressive LSTM training.
+# module load scipy-stack
 
 echo "Checking for required wheels..."
 if ! ls "$WHEELHOUSE_DIR"/[Vv]ienna[Rr][Nn][Aa]-*.whl 1> /dev/null 2>&1; then
@@ -33,8 +35,8 @@ echo "Creating virtual environment at $VENV_DIR..."
 virtualenv --no-download "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
 
-# Update core packaging tools offline (adding pip-tools)
-pip install --no-index -U pip setuptools wheel build pip-tools
+# Install pip-tools required for compiling the requirements
+pip install --no-index pip-tools
 
 echo "Setting up Python environment..."
 
