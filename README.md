@@ -282,17 +282,16 @@ You can visualize the GNN autoencoder's learned latent space using t-SNE and UMA
 ```bash
 python scripts/visualize_latent_space.py \
     --data results/GSM3130435_egfp_unmod_1/read_count_standard/test.csv.gz \
-    --model_dir results/GSM3130435_egfp_unmod_1/autoencoder/default_seed42 \
-    --output_dir results/GSM3130435_egfp_unmod_1/autoencoder/default_seed42/latent_space_plots \
-    --plot_type both
+    --raw_data data/GSM3130435_egfp_unmod_1.csv.gz \
+    --model_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42 \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/autoencoder/default_seed42/latent_space_plots
 ```
 
 > **Note**: You can set `--output_dir` to be the same as `--model_dir`. The script will output PDF plots (e.g. `tsne_gc_content.pdf`) which will not conflict with your model files. However, creating a dedicated `latent_space_plots` sub-folder keeps your results organized.
 
 The script generates:
 - t-SNE and UMAP projections (if `umap-learn` is installed).
-- Heat-maps for GC Content, Total Entropy, uAUGs, uORFs, ARE Motifs, and regional MFE.
-- Visualizations as either scatter plots (`--plot_type scatter`), hexbin plots (`--plot_type hexbin`), or both.
+- Heat-map scatter plots for GC Content, Total Entropy, uAUGs, uORFs, ARE Motifs, and regional/whole-sequence MFE.
 
 ## Compute Canada / DRAC Environment
 

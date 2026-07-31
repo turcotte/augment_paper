@@ -33,38 +33,25 @@ from src.data.metrics import (
 def parse_args():
     parser = argparse.ArgumentParser(description="Visualize Autoencoder Latent Space")
     parser.add_argument("--data", type=str, required=True, help="Path to partition CSV file with 'utr' column")
+    parser.add_argument("--raw_data", type=str, default=None, help="Path to raw dataset with 'rl' column for MRL plotting (optional)")
     parser.add_argument("--model_dir", type=str, required=True, help="Directory containing autoencoder_model.pth")
     parser.add_argument("--output_dir", type=str, required=True, help="Output directory for plots")
     parser.add_argument("--n_samples", type=int, default=None, help="Cap the number of samples to process (for speed)")
-    parser.add_argument("--plot_type", type=str, choices=["scatter", "hexbin", "both"], default="scatter", help="Type of heat-map plot to generate")
     parser.add_argument("--device", type=str, default="auto", help="Device (cuda, mps, cpu, auto)")
     parser.add_argument("--seq_len", type=int, default=50, help="Fixed length of input sequences")
     return parser.parse_args()
 
-def generate_heatmap(x, y, c, metric_name, title, output_path, plot_type="scatter"):
-    """Generate a heatmap (scatter or hexbin) colored by a metric."""
-    if plot_type in ["scatter", "both"]:
-        plt.figure(figsize=(8, 6))
-        scatter = plt.scatter(x, y, c=c, cmap="viridis", s=15, alpha=0.7, edgecolors="none")
-        plt.colorbar(scatter, label=metric_name)
-        plt.title(title)
-        plt.xlabel("Component 1")
-        plt.ylabel("Component 2")
-        plt.tight_layout()
-        plt.savefig(str(output_path).replace(".pdf", "_scatter.pdf"))
-        plt.close()
-        
-    if plot_type in ["hexbin", "both"]:
-        plt.figure(figsize=(8, 6))
-        # gridsize controls the hexagon size.
-        hb = plt.hexbin(x, y, C=c, gridsize=30, cmap="viridis", reduce_C_function=np.mean)
-        plt.colorbar(hb, label=f"Mean {metric_name}")
-        plt.title(title)
-        plt.xlabel("Component 1")
-        plt.ylabel("Component 2")
-        plt.tight_layout()
-        plt.savefig(str(output_path).replace(".pdf", "_hexbin.pdf"))
-        plt.close()
+def generate_heatmap(x, y, c, metric_name, title, output_path):
+    """Generate a heatmap scatter plot colored by a metric."""
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(x, y, c=c, cmap="viridis", s=15, alpha=0.7, edgecolors="none")
+    plt.colorbar(scatter, label=metric_name)
+    plt.title(title)
+    plt.xlabel("Component 1")
+    plt.ylabel("Component 2")
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
 
 def main():
     args = parse_args()
@@ -89,6 +76,15 @@ def main():
         print(f"Subsampling to {args.n_samples} records...")
         df = df.sample(n=args.n_samples, random_state=42).reset_index(drop=True)
 
+    if args.raw_data:
+        print(f"Loading raw data for MRL from {args.raw_data}...")
+        raw_df = pd.read_csv(args.raw_data)
+        if 'rl' in raw_df.columns:
+            raw_df = raw_df.drop_duplicates(subset=['utr'])
+            df = df.merge(raw_df[['utr', 'rl']], on='utr', how='left')
+        else:
+            print("Warning: 'rl' column not found in raw_data. Skipping MRL.")
+
     print(f"Processing {len(df)} sequences...")
 
     # 2. Compute Biological Metrics
@@ -103,7 +99,11 @@ def main():
     print("  Calculating MFE (this takes a moment)...")
     metrics_data["Cap-Proximal MFE (1-30)"] = df["utr"].apply(lambda s: mfe_region(s, 0, 30)).values
     metrics_data["Start-Proximal MFE (30-50)"] = df["utr"].apply(lambda s: mfe_region(s, 29, 50)).values
+    metrics_data["Whole Sequence MFE"] = df["utr"].apply(lambda s: mfe_region(s, 0, len(s))).values
     
+    if 'rl' in df.columns:
+        metrics_data["Mean Ribosome Load (MRL)"] = df["rl"].values
+
     # 3. Model Loading
     print("Loading GNN Autoencoder...")
     encoder = GATRegression(in_channels=10, edge_dim=2, hidden_channels=128)
@@ -143,7 +143,7 @@ def main():
 
     # 5. Dimensionality Reduction (t-SNE)
     print("Running t-SNE dimensionality reduction...")
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30, n_iter=1000)
+    tsne = TSNE(n_components=2, random_state=42, perplexity=30, max_iter=1000)
     latent_tsne = tsne.fit_transform(latent_matrix)
 
     # Dimensionality Reduction (UMAP)
@@ -160,7 +160,7 @@ def main():
         print("To enable UMAP, run: pip install umap-learn")
 
     # 6. Generate Plot Heat-maps
-    print(f"Generating {args.plot_type} plots in {args.output_dir}...")
+    print(f"Generating scatter plots in {args.output_dir}...")
     sns.set_theme(style="white")
 
     for metric_name, values in metrics_data.items():
@@ -171,7 +171,7 @@ def main():
         tsne_path = os.path.join(args.output_dir, f"tsne_{safe_name}.pdf")
         generate_heatmap(
             latent_tsne[:, 0], latent_tsne[:, 1], values, 
-            metric_name, f"t-SNE Latent Space ({metric_name})", tsne_path, args.plot_type
+            metric_name, f"t-SNE Latent Space ({metric_name})", tsne_path
         )
         
         # Plot UMAP if available
@@ -179,7 +179,7 @@ def main():
             umap_path = os.path.join(args.output_dir, f"umap_{safe_name}.pdf")
             generate_heatmap(
                 latent_umap[:, 0], latent_umap[:, 1], values, 
-                metric_name, f"UMAP Latent Space ({metric_name})", umap_path, args.plot_type
+                metric_name, f"UMAP Latent Space ({metric_name})", umap_path
             )
             
     print("All visualizations complete!")
