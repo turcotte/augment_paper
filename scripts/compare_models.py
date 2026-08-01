@@ -2,15 +2,10 @@
 
 import argparse
 from pathlib import Path
-import sys
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-# Allow absolute imports from the project root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.data.metrics import (
     total_sequence_entropy,

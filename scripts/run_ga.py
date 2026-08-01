@@ -2,15 +2,10 @@
 
 import argparse
 import json
-import os
-import sys
 
 import torch
 import numpy as np
 import pandas as pd
-
-# Allow absolute imports from the project root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.models.cnn import TangCNNRegressor
 from src.models.gat import GATRegression

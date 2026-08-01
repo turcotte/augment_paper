@@ -8,3 +8,5 @@ torch-geometric
 
 scipy
 viennarna
+
+-e .

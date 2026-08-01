@@ -14,6 +14,7 @@ from src.models.gat import GATRegression
 from src.models.autoencoder import ARLSTMDecoder, GATAutoEncoder
 from src.models.cnn import TangCNNRegressor
 from src.utils.finetune import TestDataset, load_agent_and_prior, get_latents_mrls, evaluate_cnn_oracle
+from src.data.transforms import sequence_to_graph
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DAP Fine-tuning of Autoencoder")
@@ -27,7 +28,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate for Decoder")
-    parser.add_argument("--sigma", type=float, default=60.0, help="Weighting factor for the reward against the prior")
+    parser.add_argument("--sigma", type=float, default=300.0, help="Weighting factor for the reward against the prior")
     parser.add_argument("--train_subset_size", type=int, default=50000, help="Size of stratified training subset")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--device", type=str, default="auto", help="Device (cuda, mps, cpu, auto)")

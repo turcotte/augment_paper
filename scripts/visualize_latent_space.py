@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
-import sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,9 +9,6 @@ import seaborn as sns
 import torch
 from torch_geometric.loader import DataLoader as GeoDataLoader
 from sklearn.manifold import TSNE
-
-# Allow absolute imports from the project root
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.models.gat import GATRegression
 from src.models.autoencoder import ARLSTMDecoder, GATAutoEncoder

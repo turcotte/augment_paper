@@ -162,7 +162,7 @@ python scripts/finetune_dap.py \
     --cnn_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
     --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/dap/default_seed42 \
     --epochs 3 \
-    --sigma 60.0
+    --sigma 300.0
 ```
 
 ## Fine-Tuning with Curriculum DAP
