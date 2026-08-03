@@ -8,5 +8,6 @@ torch-geometric
 
 scipy
 viennarna
+pyyaml
 
 -e .

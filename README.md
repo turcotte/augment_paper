@@ -178,7 +178,7 @@ python scripts/finetune_curriculum_dap.py \
     --cnn_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
     --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/curriculum_dap/default_seed42 \
     --epochs 3 \
-    --sigma 60.0 \
+    --sigma 300.0 \
     --num_bins 10
 ```
 
@@ -198,7 +198,7 @@ python scripts/create_ga_subsets.py \
 
 ## Calibrating the Genetic Algorithm
 
-Before running the batch evaluation, use the calibration script to determine the optimal edit-penalty (`lambda`) by comparing the GA's Pareto front against the fine-tuned RL models:
+Before running the batch evaluation, use the calibration script to perform a parameter sweep over the edit-penalty (`lambda`) values.
 
 ```bash
 python scripts/calibrate_ga.py \
@@ -207,18 +207,14 @@ python scripts/calibrate_ga.py \
     --proxy_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
     --predictor gat \
     --proxy_predictor cnn \
-    --rl_csvs \
-        results/GSM3130435_egfp_unmod_1/read_count_standard/reinforce/default_seed42/reinforce_optimized_sequences.csv.gz \
-        results/GSM3130435_egfp_unmod_1/read_count_standard/dap/default_seed42/dap_optimized_sequences.csv.gz \
-        results/GSM3130435_egfp_unmod_1/read_count_standard/curriculum_dap/default_seed42/curriculum_dap_optimized_sequences.csv.gz \
-    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga_calibration
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga/calibration-100
 ```
 
-This will generate `pareto_calibration.pdf` and a `calibration_results.json` that identifies the optimal lambda.
+This will generate a `calibration_summary.csv` containing the parsed sweep results, along with the raw data and a `calibrate_ga_summary.json` containing the metadata.
 
 ## Running the Genetic Algorithm
 
-Once you determine the optimal lambda from the calibration step (e.g., `0.075`), run the batch evaluation across the large test set:
+Once you determine the optimal lambda from the calibration step (e.g., `0.075`) by visualizing the Pareto fronts, run the batch evaluation across the large test set:
 
 ```bash
 python scripts/run_ga.py \
@@ -227,13 +223,81 @@ python scripts/run_ga.py \
     --proxy_dir results/GSM3130435_egfp_unmod_1/read_count_standard/cnn/default_seed42 \
     --predictor gat \
     --proxy_predictor cnn \
-    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42 \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/ga/test-1000 \
     --lambda_val 0.075
 ```
 
 This will automatically generate uniquely evolved sequences and output them to `results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42/ga_results.csv.gz`.
 
-## Plotting Curves
+## Aggregating Pareto Metrics for RL/Fine-Tuning
+
+To evaluate how generative models (e.g. DAP, REINFORCE) perform against a specific calibration set, use the `aggregate_pareto_metrics.py` script. This computes sequence divergence (edits) and fitness gain ($\Delta$MRL), creating a standard `pareto_summary.csv` suitable for plotting.
+
+### Example 1: DAP Sigma Sweep
+
+When evaluating a parameter sweep (e.g., DAP models trained across various $\sigma$ values), use `--param_name` to extract the parameter directly from the models' JSON metadata:
+```bash
+python scripts/aggregate_pareto_metrics.py \
+    --calibration_set results/GSM3130435_egfp_unmod_1/read_count_standard/calibration-100.csv.gz \
+    --rl_csvs results/GSM3130435_egfp_unmod_1/read_count_standard/dap/sigma*/dap_optimized_sequences.csv.gz \
+    --param_name sigma \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/dap/calibration-100
+```
+
+### Example 2: REINFORCE Single Run
+
+For a single fine-tuning run like REINFORCE where no parameter sweep occurred, simply omit `--param_name`:
+```bash
+python scripts/aggregate_pareto_metrics.py \
+    --calibration_set results/GSM3130435_egfp_unmod_1/read_count_standard/calibration-100.csv.gz \
+    --rl_csvs results/GSM3130435_egfp_unmod_1/read_count_standard/reinforce/default_seed42/reinforce_optimized_sequences.csv.gz \
+    --output_dir results/GSM3130435_egfp_unmod_1/read_count_standard/reinforce/calibration-100
+```
+
+## Plotting Pareto Curves
+
+Once summaries are generated for the GA and generative models, you can plot their Pareto fronts using a declarative YAML configuration. This perfectly decouples data aggregation from aesthetic visualization.
+
+First, create a configuration file (e.g., `results/GSM3130435_egfp_unmod_1/read_count_standard/figures/pareto_config.yaml`):
+```yaml
+output_dir: "results/GSM3130435_egfp_unmod_1/read_count_standard/figures"
+plot_name: "pareto_calibration_fronts.pdf"
+proxy_predictor: "cnn"
+n_samples: 100
+include_zero_x: true
+include_zero_y: true
+
+curves:
+  - name: "Genetic Algorithm"
+    file: "results/GSM3130435_egfp_unmod_1/read_count_standard/ga/calibration-100/calibration_summary.csv"
+    param_col: "lambda"
+    param_symbol: "$\\lambda$"
+    marker: "o"
+    color: "#1f77b4"
+    is_front: true
+
+  - name: "REINFORCE"
+    file: "results/GSM3130435_egfp_unmod_1/read_count_standard/reinforce/calibration-100/pareto_summary.csv"
+    param_col: null
+    marker: "s"
+    color: "#2ca02c"
+    is_front: false
+
+  - name: "DAP (Sigma Sweep)"
+    file: "results/GSM3130435_egfp_unmod_1/read_count_standard/dap/calibration-100/pareto_summary.csv"
+    param_col: "sigma"
+    param_symbol: "$\\sigma$"
+    marker: "X"
+    color: "#d62728"
+    is_front: true
+```
+
+Then, run the plotting script:
+```bash
+python scripts/plot_pareto_curves.py --config results/GSM3130435_egfp_unmod_1/read_count_standard/figures/pareto_config.yaml
+```
+
+## Plotting Training Curves
 
 To visualize the training loss curves or the genetic algorithm fitness history, use the `plot_curves.py` utility:
 
@@ -248,20 +312,6 @@ python scripts/plot_curves.py \
     --labels "Train Total" "Val Total" "Train Seq" "Val Seq" \
     --title "Multitask Autoencoder Training" \
     --ylabel "Loss"
-```
-
-**Genetic Algorithm History:**
-
-```bash
-python scripts/plot_curves.py \
-    --input results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/target_0/history.csv \
-    --output figures/ga_history.pdf \
-    --x_col generation \
-    --y_cols best_fitness \
-    --labels "Best Sequence Fitness" \
-    --title "GA Evolutionary Search" \
-    --xlabel "Generation" \
-    --ylabel "Fitness Score"
 ```
 
 ## Comparing Biological Metrics

@@ -90,6 +90,8 @@ python-dateutil==2.9.0.post0
     # via
     #   matplotlib
     #   pandas
+pyyaml==6.0.3
+    # via -r requirements.in
 requests==2.34.2
     # via torch-geometric
 scikit-learn==1.9.0

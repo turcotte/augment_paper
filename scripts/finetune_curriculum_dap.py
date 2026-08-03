@@ -14,6 +14,7 @@ from src.models.gat import GATRegression
 from src.models.autoencoder import ARLSTMDecoder, GATAutoEncoder
 from src.models.cnn import TangCNNRegressor
 from src.utils.finetune import TestDataset, load_agent_and_prior, get_latents_mrls, evaluate_cnn_oracle
+from src.data.transforms import sequence_to_graph
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Curriculum DAP Fine-tuning of Autoencoder")
