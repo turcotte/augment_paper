@@ -320,8 +320,8 @@ To generate comprehensive biological evaluation plots comparing a fine-tuned RL 
 
 ```bash
 python scripts/compare_models.py \
-    --rl_csv results/GSM3130435_egfp_unmod_1/read_count_standard/curriculum_dap/default_seed42/curriculum_dap_optimized_sequences.csv.gz \
-    --ga_csv results/GSM3130435_egfp_unmod_1/read_count_standard/ga_optimization/default_seed42/ga_results.csv.gz \
+    --rl_csv results/GSM3130435_egfp_unmod_1/read_count_standard/dap/sigma300/dap_optimized_sequences.csv.gz \
+    --ga_csv results/GSM3130435_egfp_unmod_1/read_count_standard/ga/test-1000/ga_results.csv.gz \
     --output_dir figures/comparison_curriculum_dap_vs_ga
 ```
 

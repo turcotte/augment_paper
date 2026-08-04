@@ -45,7 +45,7 @@ def main():
     # Inner Join on orig_seq to ensure matched comparisons
     df_eval = pd.merge(
         df_rl, df_ga, 
-        on=["orig_seq", "orig_cnn_mrl"], 
+        on=["orig_seq"], 
         suffixes=("_rl", "_ga")
     )
     
@@ -58,8 +58,8 @@ def main():
     print("Computing biological metrics (this may take a moment for MFE calculation)...")
     
     # Delta MRL
-    df_eval["delta_mrl_rl"] = df_eval["gen_cnn_mrl_rl"] - df_eval["orig_cnn_mrl"]
-    df_eval["delta_mrl_ga"] = df_eval["gen_cnn_mrl_ga"] - df_eval["orig_cnn_mrl"]
+    df_eval["delta_mrl_rl"] = df_eval["gen_cnn_mrl_rl"] - df_eval["orig_cnn_mrl_rl"]
+    df_eval["delta_mrl_ga"] = df_eval["gen_cnn_mrl_ga"] - df_eval["orig_cnn_mrl_ga"]
     
     metrics_targets = {
         "orig": df_eval["orig_seq"],
@@ -110,7 +110,7 @@ def main():
         "Model": ["Original"]*len(df_eval) + ["RL Autoencoder"]*len(df_eval) + ["Genetic Algorithm"]*len(df_eval),
         "uAUG Count": np.concatenate([df_eval["uaug_orig"], df_eval["uaug_rl"], df_eval["uaug_ga"]])
     })
-    sns.boxplot(data=uaug_data, x="Model", y="uAUG Count", palette="Set2")
+    sns.boxplot(data=uaug_data, x="Model", y="uAUG Count", hue="Model", palette="Set2", legend=False)
     plt.title("Disruption of uAUG Codons")
     plt.tight_layout()
     plt.savefig(args.output_dir / "regulatory_burden_uaug.pdf")
@@ -122,7 +122,7 @@ def main():
         "Model": ["Original"]*len(df_eval) + ["RL Autoencoder"]*len(df_eval) + ["Genetic Algorithm"]*len(df_eval),
         "uORF Count": np.concatenate([df_eval["uorf_orig"], df_eval["uorf_rl"], df_eval["uorf_ga"]])
     })
-    sns.boxplot(data=uorf_data, x="Model", y="uORF Count", palette="Set2")
+    sns.boxplot(data=uorf_data, x="Model", y="uORF Count", hue="Model", palette="Set2", legend=False)
     plt.title("Disruption of uORFs")
     plt.tight_layout()
     plt.savefig(args.output_dir / "regulatory_burden_uorf.pdf")
